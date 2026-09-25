@@ -1,0 +1,186 @@
+Old Code Multivariate Project
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 5: GSEA — Compute Enrichment Scores for all 5 pathways
+# ─────────────────────────────────────────────────────────────────────────────
+# compute_enrichment_score() runs the weighted Kolmogorov-Smirnov walk.
+# ES_max > 0 → pathway members cluster near top of ranked list (enriched in relapse)
+# ES_max < 0 → pathway members cluster near bottom (enriched in no-relapse)
+
+cat("\nComputing Enrichment Scores for all 5 pathways...\n")
+
+es_results <- lapply(names(pathway_genes_list), function(key) {
+  pgenes <- pathway_genes_list[[key]]
+  pname  <- pathway_names[key]
+  res    <- compute_enrichment_score(ranked_all$diff, pgenes, p = 1)
+  cat(sprintf("  %-45s  ES = %+.4f  [%s]\n",
+              pname, res$ES_max,
+              ifelse(res$ES_max > 0, "enriched in RELAPSE", "enriched in NO-RELAPSE")))
+  res
+})
+names(es_results) <- names(pathway_names)
+
+observed_ES <- sapply(es_results, function(r) r$ES_max)
+names(observed_ES) <- pathway_names
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 6: GSEA — Plot Enrichment Score curves (one per pathway)
+# ─────────────────────────────────────────────────────────────────────────────
+# Each curve shows the running-sum walk down the ranked gene list.
+# The peak (ES_max) is marked. A positive peak = pathway enriched in relapse.
+
+plot_es_curve <- function(es_vector, es_max, pathway_name, pathway_genes, all_genes) {
+  peak_pos    <- which.max(abs(es_vector))
+  curve_color <- ifelse(es_max > 0, "firebrick", "steelblue")
+
+  plot(es_vector,
+       type = "l", lwd = 2, col = curve_color,
+       main = pathway_name,
+       xlab = "Gene rank (high SNR → low SNR)",
+       ylab = "Running Enrichment Score",
+       cex.main = 0.85)
+  abline(h = 0,         lty = 2, col = "grey60")
+  abline(v = peak_pos,  lty = 3, col = "orange", lwd = 1.5)
+  legend("topright",
+         legend = c(sprintf("ES = %+.4f", es_max),
+                    sprintf("p = %d genes", length(pathway_genes))),
+         bty = "n", cex = 0.8)
+
+  # Rug of pathway gene positions in the ranked list
+  gene_positions <- which(names(ranked_all$diff) %in% pathway_genes)
+  rug(gene_positions, col = adjustcolor(curve_color, alpha = 0.4), ticksize = 0.04)
+}
+
+# Panel of all 5 ES curves — ready for the report
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+for (key in names(pathway_names)) {
+  plot_es_curve(
+    es_vector     = es_results[[key]]$ES,
+    es_max        = es_results[[key]]$ES_max,
+    pathway_name  = sub("HALLMARK_", "", pathway_names[key]),
+    pathway_genes = pathway_genes_list[[key]],
+    all_genes     = ranked_all$diff
+  )
+}
+# Empty 6th panel used as legend space
+plot.new()
+legend("center", bty = "n", cex = 0.85,
+       legend = c("Positive ES → enriched in relapse",
+                  "Negative ES → enriched in no-relapse",
+                  "Orange line → peak (ES_max)",
+                  "Rug → positions of pathway genes"),
+       col = c("firebrick", "steelblue", "orange", "grey60"),
+       lty = c(1, 1, 3, 1), lwd = 2, title = "Legend")
+par(mfrow = c(1, 1))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 7: GSEA — Null distributions (permutation test)
+# ─────────────────────────────────────────────────────────────────────────────
+# approximate_null_distribution() permutes the group labels and recomputes ES.
+# This generates the distribution of ES under H0: pathway is NOT differentially
+# expressed. The empirical p-value is the fraction of null ES >= observed ES.
+#
+# Computational note: start this section running, then move to Section 8 (PCA)
+# while it computes. With 1,000 iterations × 5 pathways expect 10–60 min.
+
+N_ITERS <- 1000  # minimum; increase to 5000 if time allows
+
+# Check if null distributions were already saved from a previous run
+if (file.exists("null_distributions.RDS")) {
+  cat("\nLoading saved null distributions from null_distributions.RDS\n")
+  null_distributions <- readRDS("null_distributions.RDS")
+} else {
+  cat("\nComputing null distributions (", N_ITERS, "iterations × 5 pathways)...\n")
+
+  null_distributions <- list()
+  total_t0 <- proc.time()
+
+  for (key in names(pathway_names)) {
+    pname  <- pathway_names[key]
+    pgenes <- pathway_genes_list[[key]]
+    cat(sprintf("[%s] %-45s (%3d genes) ... ", key, pname, length(pgenes)))
+    flush.console()
+
+    t0 <- proc.time()
+    null_distributions[[pname]] <- approximate_null_distribution(
+      expr_gene = gene_expr,
+      inds      = relapse_inds,
+      geneset   = pgenes,
+      iters     = N_ITERS,
+      p         = 1
+    )
+    cat(sprintf("done (%.0f sec)\n", (proc.time() - t0)[["elapsed"]]))
+  }
+  total_elapsed <- (proc.time() - total_t0)[["elapsed"]]
+  cat(sprintf("\nTotal: %.0f sec (%.1f min)\n", total_elapsed, total_elapsed / 60))
+  saveRDS(null_distributions, "null_distributions.RDS")
+  cat("Saved to null_distributions.RDS\n")
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 8: GSEA — Empirical p-values and null distribution plots
+# ─────────────────────────────────────────────────────────────────────────────
+# Empirical p-value = proportion of null ES_max values >= |observed ES_max|.
+# Two-sided: we check both tails because we care whether a pathway is enriched
+# in either group (relapse or no-relapse).
+
+compute_empirical_pvalue <- function(observed_es, null_es_vec, two_sided = TRUE) {
+  if (two_sided) {
+    mean(abs(null_es_vec) >= abs(observed_es))
+  } else {
+    if (observed_es >= 0) mean(null_es_vec >= observed_es)
+    else                  mean(null_es_vec <= observed_es)
+  }
+}
+
+cat("\nGSEA Empirical p-values (two-sided, N =", N_ITERS, "permutations):\n")
+cat(strrep("-", 65), "\n")
+
+gsea_pvalues <- sapply(names(pathway_names), function(key) {
+  pname <- pathway_names[key]
+  obs   <- observed_ES[key]
+  null  <- null_distributions[[pname]]
+  pval  <- compute_empirical_pvalue(obs, null, two_sided = TRUE)
+  cat(sprintf("  %-45s  ES = %+.4f  p = %.4f  %s\n",
+              pname, obs, pval,
+              ifelse(pval < 0.05, "** SIGNIFICANT **", "")))
+  pval
+})
+names(gsea_pvalues) <- pathway_names
+cat(strrep("-", 65), "\n")
+
+# Null distribution plots with observed ES marked
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+for (key in names(pathway_names)) {
+  pname <- pathway_names[key]
+  obs   <- observed_ES[key]
+  null  <- null_distributions[[pname]]
+  pval  <- gsea_pvalues[key]
+
+  hist(null,
+       breaks = 40,
+       col    = "lightgrey",
+       border = "white",
+       main   = sub("HALLMARK_", "", pname),
+       xlab   = "ES under H0",
+       cex.main = 0.85)
+  abline(v = obs, col = "firebrick", lwd = 2.5)
+  abline(v = -abs(obs), col = "firebrick", lwd = 1.5, lty = 2)
+  legend("topright", bty = "n", cex = 0.75,
+         legend = c(sprintf("Obs. ES = %+.4f", obs),
+                    sprintf("p = %.4f", pval)))
+}
+plot.new()
+legend("center", bty = "n", cex = 0.85,
+       legend = c("Grey bars = null distribution",
+                  "Red solid = observed ES",
+                  "Red dashed = mirror (two-sided)"),
+       fill   = c("lightgrey", NA, NA),
+       col    = c(NA, "firebrick", "firebrick"),
+       lty    = c(NA, 1, 2),
+       lwd    = c(NA, 2.5, 1.5),
+       title  = "Null Distribution Plots")
+par(mfrow = c(1, 1))

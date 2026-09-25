@@ -1,0 +1,34 @@
+Hotelling and the Bio Background -> benchmarks + logic (B, D)
+GSEA and Lead -> alternative modelling and reasoning (A, C)
+
+Thursday -> 2nd Meeting (30th April)
+
+
+Thursday -> 3rd Meeting w/Deadline -> Optional (7th May)
+
+ID LIST
+anman25
+dabay25
+cesko25
+mhaus25
+
+
+\begin{tabular}{l|l}
+\hline
+Names & Andrei Manoloiu\newline Maximilian Hauser\newline Cecilie Skovbjerg\newline Damien Baynes\\
+\hline
+Ids & anman25\newline mhaus25\newline cesko25\newline dabay25\\
+\hline
+Hash & 45503\\
+\hline
+Set 1 & HALLMARK\_APICAL\_JUNCTION\\
+\hline
+Set 2 & HALLMARK\_INFLAMMATORY\_RESPONSE\\
+\hline
+Set 3 & HALLMARK\_E2F\_TARGETS\\
+\hline
+Set 4 & HALLMARK\_UNFOLDED\_PROTEIN\_RESPONSE\\
+\hline
+Set 5 & HALLMARK\_CHOLESTEROL\_HOMEOSTASIS\\
+\hline
+\end{tabular}

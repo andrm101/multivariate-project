@@ -1,0 +1,81 @@
+Hotelling and the Bio Background -> benchmarks + logic (B, D)
+GSEA and Lead -> alternative modelling and reasoning (A, C)
+
+Thursday -> 2nd Meeting (30th April)
+
+
+Thursday -> 3rd Meeting w/Deadline -> Optional (7th May)
+
+ID LIST
+anman25
+dabay25
+cesko25
+mhaus25
+
+
+\begin{tabular}{l|l}
+\hline
+Names & Andrei Manoloiu\newline Maximilian Hauser\newline Cecilie Skovbjerg\newline Damien Baynes\\
+\hline
+Ids & anman25\newline mhaus25\newline cesko25\newline dabay25\\
+\hline
+Hash & 45503\\
+\hline
+Set 1 & HALLMARK\_APICAL\_JUNCTION\\
+\hline
+Set 2 & HALLMARK\_INFLAMMATORY\_RESPONSE\\
+\hline
+Set 3 & HALLMARK\_E2F\_TARGETS\\
+\hline
+Set 4 & HALLMARK\_UNFOLDED\_PROTEIN\_RESPONSE\\
+\hline
+Set 5 & HALLMARK\_CHOLESTEROL\_HOMEOSTASIS\\
+\hline
+\end{tabular}
+
+
+
+Assigned pathways:
+                                Set1                                 Set2 
+          "HALLMARK_APICAL_JUNCTION"     "HALLMARK_INFLAMMATORY_RESPONSE" 
+                                Set3                                 Set4 
+              "HALLMARK_E2F_TARGETS" "HALLMARK_UNFOLDED_PROTEIN_RESPONSE" 
+                                Set5 
+  "HALLMARK_CHOLESTEROL_HOMEOSTASIS" 
+
+Gene overlap per pathway:
+---------------------------------------------------------------------------
+  HALLMARK_APICAL_JUNCTION                      | 200 pathway genes | 182 available | 18 dropped
+  HALLMARK_INFLAMMATORY_RESPONSE                | 201 pathway genes | 194 available |  7 dropped
+  HALLMARK_E2F_TARGETS                          | 200 pathway genes | 189 available | 11 dropped
+  HALLMARK_UNFOLDED_PROTEIN_RESPONSE            | 113 pathway genes | 113 available |  0 dropped
+  HALLMARK_CHOLESTEROL_HOMEOSTASIS              |  74 pathway genes |  61 available | 13 dropped
+--------------------------------------------------------------------------- 
+
+Dimension p per pathway (for Hotelling's T²):
+Set1 Set2 Set3 Set4 Set5 
+ 182  194  189  113   61 
+
+Ranking all 12643 genes by Signal-to-Noise Ratio...
+Ranking complete.
+Top 5 genes (highest SNR — overexpressed in relapse):
+ ABCC5 ZCCHC8  MAPK9   SUCO   GPN3 
+0.3500 0.3251 0.3249 0.3027 0.2990 
+Bottom 5 genes (lowest SNR — underexpressed in relapse):
+  RASA2  PRKCSH CWF19L1    CD44  DNASE2 
+-0.3199 -0.3253 -0.3412 -0.3586 -0.3876 
+
+Computing Enrichment Scores for all 5 pathways...
+  HALLMARK_APICAL_JUNCTION                       ES = -0.3402  [enriched in NO-RELAPSE]
+  HALLMARK_INFLAMMATORY_RESPONSE                 ES = -0.5072  [enriched in NO-RELAPSE]
+  HALLMARK_E2F_TARGETS                           ES = +0.3575  [enriched in RELAPSE]
+  HALLMARK_UNFOLDED_PROTEIN_RESPONSE             ES = -0.2379  [enriched in NO-RELAPSE]
+  HALLMARK_CHOLESTEROL_HOMEOSTASIS               ES = -0.3420  [enriched in NO-RELAPSE]
+
+GSEA Results:
+                       Pathway p_genes      ES  Direction GSEA_p Sig
+Set1           APICAL_JUNCTION     182 -0.3402 No-relapse  0.073    
+Set2     INFLAMMATORY_RESPONSE     194 -0.5072 No-relapse  0.017   *
+Set3               E2F_TARGETS     189  0.3575    Relapse  0.457    
+Set4 UNFOLDED_PROTEIN_RESPONSE     113 -0.2379 No-relapse  0.539    
+Set5   CHOLESTEROL_HOMEOSTASIS      61 -0.3420 No-relapse  0.210    

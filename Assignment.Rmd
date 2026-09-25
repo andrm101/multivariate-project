@@ -1,0 +1,243 @@
+---
+title: "DSK805 - Course Project"
+author: "Henry Kirveslahti"
+date: "2026-04-09"
+output: pdf_document
+---
+
+## Gene Set Enrichment Analysis
+
+Gene set enrichment analysis (GSEA) \cite{GSEA} is a statistical method specifically designed to analyze gene expression data.
+
+The goal of this type of analysis is to use prior knowledge of genetic pathways and to systematically study their relation to phenotypic variation. In other words, to relate meaningful genetic signal to characteristics of individuals that we can directly observe.
+
+In this project we use the gene set enrichment analysis to study 5 genetic pathways and their relation to breast cancer metastasis. We also compare these results against the more traditional analysis of group differences based on Hotelling's $T^2$-statistic.
+
+## The Data Set
+
+For this project we use data from two sources: We have a) 50 Hallmark genetic pathways from the Molecular signatures database \cite{Hallmark} and b) the GSE2034 Breast cancer data set \cite{GSE2034} from the Gene Expression Omnibus. Links to the raw data are below, but since the data are quite messy and involve combining information from two sources with slightly different conventions, I have pre-cleaned them for you so that you can jump directly to the analysis without worrying about molecule names. The cleaned data comprises 3 .RMD files:
+
+\begin{itemize}
+\item The file $\texttt{gene\_expressions.RDS}$ contains the gene expression data frame that contains the abundancy reads for $g=12,643$ genes for $n=286$ patients. \textbf{NB:} Note that the data frame is $g \times n$, we have rows indexing features and columns indexing samples. Note that this is contrary to the usual setup on this course.
+\item The file $\texttt{group.RDS}$ contains a binary vector that tells us which of the $n$ patients belong to the two groups. The two groups are $\texttt{relapse}$ ($n_1=69$) and $\texttt{no-relapse}$ ($n_2=217$), indicating breast cancer bone metastasis vs. no metastasis, respectively. Metastasis means the cancer is spreading from the primary location (breast) to other parts of the body. In our case we are talking specifically about bone metastasis. Needless to say, metastatis is bad news for the patient.
+\item Finally, $\texttt{HML.RDS}$ contains 50 Hallmark genetic pathways. These are expert-chosen specific genetic pathways (sets of genes) that share a common biological theme or that is associated with some phenotype (which may have been originally identified with the help of GSEA). From a technical perspective, this is a named list of lists. Each element of the list contains a list of genes, corresponding to a subset of rows of $\texttt{gene\_expressions.RDS}$. Your job is to analyze 5 of these pathways. You are not free to choose the pathways, but they are given to you by a randomization procedure known as the $\texttt{genetic\_lottery}$.
+\end{itemize}
+
+## The tools
+
+To help you with your analysis, you do not need to write the analysis code from scratch. Importantly, you are given two scripts:
+
+\begin{itemize}
+\item The script $\texttt{hotelling.R}$ can be used to compute one and two-sample Hotelling's $T^2$ tests;
+\item The $\texttt{GSEA\_functions.R}$ contains 3 functions that correspond to the 3 steps of the GSEA. These are in the order:
+\begin{itemize}
+\item[1.] The function $\texttt{rank\_genes}$ ranks the genes based on their Signal-to-noise-ratio and returns them in descending order. 
+\item[2.] The function $\texttt{compute\_enrichment\_score}$ computes, given ranked genes and a geneset $S$, the enrichment score for the set $S$.
+\item[3.] The function $\texttt{approximate\_null\_distribution}$ Generates samples from the null distribution for the null hypothesis that geneset $S$ is not differentially expressed between the two groups.
+\item[*] If you want to use other methods for steps 1-3 of the GSEA, that is fine, but then you need to develop the code for those yourself, or if you use someone else's code, cite it and describe what it does in sufficient detail.
+\end{itemize}
+\item You are also given a script of utility functions $\texttt{dks805utils.R}$ that can compute the Yeo-Johnson power transform to try to force the data to be normally distributed.
+\item There is also a script called $\texttt{lottery.R}$. This is used to determine the gene sets that your group should work on
+\end{itemize}
+
+You can call the functions from these scripts directly from your code by placing them in your working folder and then calling
+
+```{r, eval=FALSE}
+source('C:\\Users\\andre\\Desktop\\Sandbox\\Multivariate Project\\hotelling.R')
+source('C:\\Users\\andre\\Desktop\\Sandbox\\Multivariate Project\\GSEA_functions.R')
+source('C:\\Users\\andre\\Desktop\\Sandbox\\Multivariate Project\\lottery.R')
+source('C:\\Users\\andre\\Desktop\\Sandbox\\Multivariate Project\\dsk805utils.R')
+```
+
+The last script requires the $\texttt{car}$ package.
+
+## Hints
+
+\begin{itemize}
+
+\item Some of the pathways may contain genes that are not part of the expression matrix. This is completely fine. The statistically principled way to proceed is just to ignore them. So for example if your pathway contained 200 genes but only 184 were present in the gene expression matrix, you would just take the 184 genes that you have and you would be correct to use $p=184$ if you wanted to a Hotelling's $T^2$ test.
+
+\item Related to the above, you should take a look at the .RMD file for the lectures on April 9. The .rmd file contains a lot of useful $\texttt{R}$-commands for subsetting etc. The .pdf files also describe the steps of the GSEA.
+
+\item You should probably like to fix your group early on. The exact assignment (the pathways that you are given by the $\texttt{genetic\_lottery}$) depends on the group members, so there is not much hands-on work that you could do prior to having the group fixed
+
+\item It is probably not a good idea to divide the work in the group pathway by pathway, because then you need to re-invent the wheel and replicate work. It might be better to coordinate: someone start putting the report structure together, another figure out what to do about Hotelling's $T^2$, third setting up the scene for running the GSEA etc.
+
+\item Computing the null distribution in the GSEA (and possible Hotelling's $T^2$ if using permutation tests) can be costly and will likely be the main computational bottle neck. It would be good idea to leave enough time for this so that you can get it done with reasonably high $S$ (aim for at least 1,000 iterations) and still write your report. Hint: If you are tech-savvy you could run this on ucloud. Using ucloud is optional, but this might be a nice opportunity to practice using it.
+
+\item The GSEA makes no specific requirements for the data. However, if you want to use the $p$-values from Hotelling's $T^2$-test, your data should be normally distributed (and the variances for the two groups should be similar). If these assumptions are not met, then we can either: a) try to transform the data b) do a permutation test c) write down that the assumptions are violated, and take that into account when reporting your results and describing what you found. While options a) and b) are of course preferable to option c), option c) is still much better than sweeping the problem under the rug and pretending it did not exist. Note that we have not even covered testing equality of variance, this is of course not part of the project. You can expect these type of problems. Note that you are only asked to do GSEA for the 5 genetic pathways, and to contrast the results with Hotelling's $T^2$ approach. Neither of these is the end-all-be-all of gene analysis, and your job is not to produce such analysis.
+
+\end{itemize}
+
+
+### Your Job
+
+Following the development in the Lecture slides, perform a gene set enrichment analysis for 5 genetic pathways, determined by your group composition. Compare the results against Hotellings $T^2$ test. Summarize your findings in a brief report, to be submitted on itslearning by April 30.
+
+Your report should contain the following:
+
+1. The project header (See below)
+2. Generative AI statement (Technically, not part of the report - see attached form for a template for instructions)
+3. Brief Introduction to what you are doing
+4. Description of methods (at the level of naming what you did, no need to go to mathematical details)
+5. Assumptions behind the methods and verifying if they are met (pictures might be nice)
+6. Findings of the report, contrasting the results from GSEA and Hotelling's $T^2$ approach, and possibly with what background you find for the genetic pathway in the literature.
+
+Submit your report as a .pdf file. Put any supporting code to a separate file. The generative AI form should also be in a separate file (it can be for example a .docx file)
+
+Good luck!
+
+## Assignment rules
+
+This is an open book, open everything assignment. Group size is at most 5, but you are very welcome to collaborate across teams. But please note, the other groups may be working on entirely different pathways, which somewhat limits the utility of this kind of collaboration (you can't just steal their work).
+
+To foster collaboration, there is a discussion board on itslearning to discuss whatever aspects related to your project. 
+
+Max report length 6 pages, but shorter is better for as long as it has all the components. Gen AI statement not counted towards the page limit. If you have additional details that you want to provide, you can put them in the appendix, but the report should be readable without it.
+
+You have until April 30 to turn in the assignment on itslearning.
+
+\textbf{Make sure to carefully read the Section about the Project Header. Tampering the header generation code is considered an exam fraud.}
+
+### The Project Header
+
+On top of the first page of your project, you should include a header that looks as follows:
+
+```{r project_headers, echo=FALSE}
+# Do not modify
+# ONLY MODIFY LINES 160-161
+library(digest)
+library(knitr)
+
+HML=c('HALLMARK_ADIPOGENESIS','HALLMARK_ALLOGRAFT_REJECTION','HALLMARK_ANDROGEN_RESPONSE','HALLMARK_ANGIOGENESIS','HALLMARK_APICAL_JUNCTION','HALLMARK_APICAL_SURFACE','HALLMARK_APOPTOSIS','HALLMARK_BILE_ACID_METABOLISM','HALLMARK_CHOLESTEROL_HOMEOSTASIS','HALLMARK_COAGULATION','HALLMARK_COMPLEMENT','HALLMARK_DNA_REPAIR','HALLMARK_E2F_TARGETS','HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION','HALLMARK_ESTROGEN_RESPONSE_EARLY','HALLMARK_ESTROGEN_RESPONSE_LATE','HALLMARK_FATTY_ACID_METABOLISM','HALLMARK_G2M_CHECKPOINT','HALLMARK_GLYCOLYSIS','HALLMARK_HEDGEHOG_SIGNALING','HALLMARK_HEME_METABOLISM','HALLMARK_HYPOXIA','HALLMARK_IL2_STAT5_SIGNALING','HALLMARK_IL6_JAK_STAT3_SIGNALING','HALLMARK_INFLAMMATORY_RESPONSE','HALLMARK_INTERFERON_ALPHA_RESPONSE','HALLMARK_INTERFERON_GAMMA_RESPONSE','HALLMARK_KRAS_SIGNALING_DN','HALLMARK_KRAS_SIGNALING_UP','HALLMARK_MITOTIC_SPINDLE','HALLMARK_MTORC1_SIGNALING','HALLMARK_MYC_TARGETS_V1','HALLMARK_MYC_TARGETS_V2','HALLMARK_MYOGENESIS','HALLMARK_NOTCH_SIGNALING','HALLMARK_OXIDATIVE_PHOSPHORYLATION','HALLMARK_P53_PATHWAY','HALLMARK_PANCREAS_BETA_CELLS','HALLMARK_PEROXISOME','HALLMARK_PI3K_AKT_MTOR_SIGNALING','HALLMARK_PROTEIN_SECRETION','HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY','HALLMARK_SPERMATOGENESIS','HALLMARK_TGF_BETA_SIGNALING','HALLMARK_TNFA_SIGNALING_VIA_NFKB','HALLMARK_UNFOLDED_PROTEIN_RESPONSE','HALLMARK_UV_RESPONSE_DN','HALLMARK_UV_RESPONSE_UP','HALLMARK_XENOBIOTIC_METABOLISM')
+
+genetic_lottery <- function(x) {
+  x <- sort(x)
+  tmp=sum(utf8ToInt(paste(x, collapse = "|")) * seq_along(utf8ToInt(paste(x, collapse = "|")))) %% .Machine$integer.max
+  set.seed(tmp)
+  inds=sample(c(1:49),5,replace=FALSE)
+  genes=HML[inds]
+  return(list(tmp,inds,genes))
+}
+escape_latex <- function(x) {
+  gsub("_", "\\\\_", x)
+}
+
+format_table_latex <- function(names_vec, ids_vec) {
+  # Input checks
+  #if (length(list_vec) != 5) stop("list_vec must have exactly 5 elements")
+  if (length(names_vec) != length(ids_vec)) stop("names and ids must be the same length")
+  
+  # Compute a hash from names + ids
+  logic=genetic_lottery(ids_vec)
+  #hash_value <- digest(paste0(names_vec, ids_vec, collapse = "_"), algo = "md5")
+  hash_value=logic[[1]]
+  list_text=HML[sample(1:49,5)]
+  list_text=escape_latex(list_text)
+  # Join the list with LaTeX line breaks
+  #list_text <- paste(list_vec, collapse = "\\newline ")
+  
+  # Construct 4x2 table
+  df <- data.frame(
+    c("Names", "Ids", "Hash", "Set 1", "Set 2", "Set 3", "Set 4", "Set 5"),
+    c(
+      paste(names_vec, collapse = "\\newline "),
+      paste(ids_vec, collapse = "\\newline "),
+      hash_value,
+      list_text
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  return(df)
+}
+
+
+##################################################
+##################################################
+##################################################
+# Only Modify this part
+#
+names=c('Andrei Manoloiu', 'Maximilian Hauser', 'Cecilie Skovbjerg', 'Damien Baynes')
+ids_vec   <- c('anman25', 'mhaus25', 'cesko25', 'dabay25')
+##################################################
+##################################################
+##################################################
+
+
+table_df <- format_table_latex(names, ids_vec)
+
+# Print with kable for LaTeX
+kable(table_df, format = "latex", escape = FALSE, col.names = NULL)
+```
+
+You should replace name1, name2 and name3 with your actual names and id1, id2, id3 with your actual ids (see below for what is an id). The rest are generated by the $\texttt{genetic\_lottery}$ from $\texttt{lottery.R}$. (See the $\texttt{assignment.RMD}$ for code for generating the header.)
+
+### Specific rules about the header
+
+- Use the provided .RMD to generate the header (See the assignment.RMD for the code). If you cannot use Latex with R, you can construct the header manually, but you need to use the provided R function $\texttt{genetic\_lottery()}$ from $\texttt{lottery.R}$ to compute the hash and for obtaining the gene sets. In this case you must provide the full output and input of the $\texttt{genetic\_lottery}$ function. Like such:
+#'id1', 'id2', 'id3'
+```{r, echo=TRUE}
+source('lottery.R') # The code containing the assignment script
+x=c('anman25', 'mhaus25', 'cesko25', 'dabay25') #the list of your ids
+print(x) # Print the input
+print(genetic_lottery(x)) # Print the output
+```
+
+- **Include both the input and the full output of this script**
+
+- \textbf{Your id is your sdu email address, (whatever comes before the @ symbol)}. The input to the randomization function is the set of your ids of the members of your group. You can put the ids in any order.
+- Because a randomization script is used to determine the assignment, it is very important that you adhere to the reporting guidelines to the point. Tampering the $\texttt{genetic\_lottery}$ function is considered cheating and we reserve the right to subtract points for modifying it, whether negligent or intentional. So please be careful.
+
+
+### Grading Rubric
+
+The Assignment is graded on 3 dimensions: Content (40 %), Accuracy (40 %) and Clarity (20 %). The weights are a rough guideline. Like genes, the effect of these components is not linear but multiplicative: This means that you should avoid poor performance on any one area, rather get all components to a reasonable level before diving into details. The three components are loosely described as follows:
+
+\begin{itemize}
+\item Content (40\%): Relevance, completeness, and depth of statistical analysis (That you did all the things you were asked to)
+\item Accuracy (40\%): Correctness of methods, calculations, and interpretations (That you indicate that you understand whatever you did)
+\item Clarity (20\%): Organization, explanation, and presentation of results (That your report is easy to read and evaluate, it is submitted on time and it looks good)
+\end{itemize}
+
+The target audience of your report should be another student on this course. 
+
+This assignment is designed to evaluate the following expected learning outcomes of this course:
+
+\begin{itemize}
+\item Understand and identify problems that can be solved using multivariate techniques.
+\item Perform a practical data analysis with the techniques from the course.
+\item Perform programming relevant to the content of the course in the statistical package used in the course.
+\item Summarize the results of an analysis in a statistical report.
+\end{itemize}
+
+### Generative AI statement
+
+Filling out the generative AI statement ($\texttt{GAI\_form.docx}$) is optional, but it is highly recommended. Please see detailed filling instructions in the form. You need to comply with the generative AI guidelines whether or not you fill the form.
+
+In the parlance of this form, in terms of this assignment good uses of AI in this project might be using it to help make prettier graphics, and also to let it explain what the hallmark pathways mean intuitively. This is a project in multivariate statistics, not molecular biology.
+
+### References
+
+The original GSEA paper is \cite{GSEA}. It is also available on itslearning under the assignment as $\texttt{GSEA\_paper.pdf}$. You can find more information about the hallmark genes in \cite{Hallmark}. Finally, the source for the breast cancer data set is \cite{GSE2034}.
+
+\begin{thebibliography}{}
+
+\bibitem{GSEA}
+A.Subramanian, P.Tamayo, V.K.Mootha, S.Mukherjee, B.L.Ebert, M.A.Gillette, A.Paulovich, S.L.Pomeroy, T.R.Golub, E.S.Lander, J.P.Mesirov,
+\emph{Gene set enrichment analysis: A knowledge-based approach for interpreting genome-wide expression profiles},
+\textit{Proceedings of the National Academy of Sciences}, 102(43):15545--15550, 2005.
+
+\bibitem{Hallmark}
+A.Liberzon, C.Birger, H.Thorvaldsdottir, M.Ghandi, J.P.Mesirov, P.Tamayo,
+\emph{The Molecular Signatures Database (MSigDB) hallmark gene set collection},
+\textit{Cell Systems}, 1(6):417--425, 2015.
+
+\bibitem{GSE2034}
+M.J. van de Vijver, Y.He, L.J. van’t Veer, H.Dai, A.A.M.Hart, D.W. Voskuil, G.J.Schreiber, H.L. Peterse, C.Roberts, M.J.Marton, M.Parrish, D.Atsma, A.Witteveen, A.M.Glas , L.Delahaye, T. van der Velde,  H. Bartelink, S. Rodenhuis,  E.J.T. Rutgers, S.H. Friend,
+\emph{A gene-expression signature as a predictor of survival in breast cancer},
+\textit{The New England Journal of Medicine}, 347:1999--2009, 2002.
+
+\end{thebibliography}
+
+
