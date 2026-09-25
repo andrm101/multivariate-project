@@ -3,16 +3,18 @@
 # Subteam: GSEA + Report Lead
 
 #load repo
+# NB: set the working directory to this project folder first, e.g.
+# setwd("path/to/Multivariate Project") or open via an RStudio project.
 library(car)
-source("C:/Users/andre/Desktop/Sandbox/Multivariate Project/hotelling.R")
-source("C:/Users/andre/Desktop/Sandbox/Multivariate Project/GSEA_functions.R")
-source("C:/Users/andre/Desktop/Sandbox/Multivariate Project/lottery.R")
-source("C:/Users/andre/Desktop/Sandbox/Multivariate Project/dsk805utils.R")
+source("hotelling.R")
+source("GSEA_functions.R")
+source("lottery.R")
+source("dsk805utils.R")
 
 #load Data
-gene_expr <- readRDS("C:/Users/andre/Desktop/Sandbox/Multivariate Project/gene_expressions.RDS") # g × n: 12,643 genes × 286 patients
-group <- readRDS("C:/Users/andre/Desktop/Sandbox/Multivariate Project/group.RDS") # "relapse" / "no-relapse", length 286
-HML_data <- readRDS("C:/Users/andre/Desktop/Sandbox/Multivariate Project/HML.RDS") # 50 hallmark pathways
+gene_expr <- readRDS("gene_expressions.RDS") # g × n: 12,643 genes × 286 patients
+group <- readRDS("group.RDS") # "relapse" / "no-relapse", length 286
+HML_data <- readRDS("HML.RDS") # 50 hallmark pathways
 
 relapse <- group == "relapse"  # TRUE = relapse (n1=69), FALSE = no-relapse (n2=217)
 
@@ -74,8 +76,8 @@ cat("Saved: fig_ES_curves.pdf\n")
 
 N_PERM <- 1000
 
-if (file.exists("C:/Users/andre/Desktop/Sandbox/Multivariate Project/null_dists.RDS")) {
-  null_dists <- readRDS("C:/Users/andre/Desktop/Sandbox/Multivariate Project/null_dists.RDS")
+if (file.exists("null_dists.RDS")) {
+  null_dists <- readRDS("null_dists.RDS")
   cat("Loaded saved null distributions.\n")
 } else {
   cat("Computing null distributions (", N_PERM, "permutations × 5 pathways)...\n")
