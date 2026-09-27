@@ -6,6 +6,21 @@ DSK805 (Multivariate Statistics, SDU) course project applying Gene Set Enrichmen
 
 Using 50 Hallmark genetic pathways (Molecular Signatures Database) and the GSE2034 breast cancer gene expression data set (Gene Expression Omnibus), the project studies 5 genetic pathways in relation to breast cancer metastasis, comparing GSEA-based results against a traditional Hotelling's T² group-difference analysis.
 
+📖 **[Full abstract, results table, and GSEA-vs-Hotelling's-T² methodology → project Wiki](https://github.com/andrm101/multivariate-project/wiki)**
+
+## Results at a glance
+
+<p align="center">
+  <img src="figures/fig_ES_curves.png" width="90%" alt="GSEA running enrichment score curves, all 5 pathways" />
+</p>
+
+<p align="center">
+  <img src="figures/fig_null_dists.png" width="48%" alt="Permutation null distributions" />
+  <img src="figures/fig_QQ_plots.png" width="48%" alt="Normality diagnostic QQ plots" />
+</p>
+
+Only **HALLMARK_INFLAMMATORY_RESPONSE** reaches GSEA significance (ES=−0.507, p=0.017) — see the wiki for the full 5-pathway results table and why the multivariate-normality check (needed for Hotelling's T² but not GSEA) fails for every pathway.
+
 ## Architecture
 
 ```mermaid
